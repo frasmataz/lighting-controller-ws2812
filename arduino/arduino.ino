@@ -86,15 +86,16 @@ int getLedVal(int x, int i) {
   , 0, 255);
 }
 
-void readPots() {  
-  val =           (1023 - pow(analogRead(volumePin)/13.1,1.6))   / 1024.0f * 255.0f;
-  hue =           (1023 - analogRead(moodPin))        / 1024.0f * 255.0f;
-  //sat =           (1023 - analogRead(vibrancePin))    / 1024.0f * 255.0f;
-  strip_spread =  (1023 - analogRead(divergencePin))  / 1024.0f * 1.5f;
-  twinkle_hue =   (1023 - analogRead(contourPin))     / 1024.0f * 1.0f;
-  twinkle_sat =   (1023 - analogRead(shimmerPin))     / 1024.0f * 1.5f;
-  twinkle_val =   (1023 - analogRead(emberPin))       / 1024.0f * 2.0f;
-  speed =         (1023 - analogRead(pacePin))        / 1024.0f * 0.5f;
+void readPots() {
+  // smoothRead smoothing values have been tuned to reduce flickering on my device
+  val =           (1023 - pow(smoothRead(volumePin, 25)/13.1,1.6))   / 1024.0f * 255.0f;
+  hue =           (1023 - smoothRead(moodPin, 50))        / 1024.0f * 255.0f;
+  //sat =           (1023 - smoothRead(vibrancePin), 10)    / 1024.0f * 255.0f;
+  strip_spread =  (1023 - smoothRead(divergencePin, 35))  / 1024.0f * 1.5f;
+  twinkle_hue =   (1023 - smoothRead(contourPin, 5))     / 1024.0f * 1.0f;
+  twinkle_sat =   (1023 - smoothRead(shimmerPin, 10))     / 1024.0f * 1.5f;
+  twinkle_val =   (1023 - smoothRead(emberPin, 30))       / 1024.0f * 2.0f;
+  speed =         (1023 - smoothRead(pacePin, 5))        / 1024.0f * 0.5f;
 
   twinkle_sat = twinkle_sat > 0.1? twinkle_sat : 0.0;
 
@@ -117,4 +118,14 @@ void readPots() {
 //    Serial.print("speed: ");
 //    Serial.println(speed);
   }
+}
+
+float smoothRead(int pin, int iterations) {
+  float total = 0.0f;
+
+  for (int i = 0; i < iterations; i++) {
+    total = total + (float)analogRead(pin);
+  }
+
+  return total / iterations;
 }
