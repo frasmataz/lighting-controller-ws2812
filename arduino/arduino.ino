@@ -1,8 +1,8 @@
 #include <FastLED.h>
 
-#define LOGGING true
-#define NUM_STRIPS 2
-#define NUM_LEDS_PER_STRIP 60
+#define LOGGING false
+#define NUM_STRIPS 1
+#define NUM_LEDS_PER_STRIP 72
 CRGB leds[NUM_STRIPS][NUM_LEDS_PER_STRIP];
 float anim_time = 0.0;
 
@@ -71,15 +71,19 @@ int getLedHue(int x, int i) {
 }
 
 int getLedSat(int x, int i) {
-  return max( 
-    sat - (twinkle_sat * inoise8(x * 120, i * 120, anim_time))
-  , 0);
+  float overdrive = 6.0f; // Scale noise amplitude, clamping values above max and below min.  Adds more 'shimmer' contrast.
+  int noiseScale  = 120;   // Scale noise frequency.  Higher value means smaller waves.
+  return constrain(                     // \/ Tweak this value adjust maximum selectable effect, default 255.
+    sat * ( ( overdrive/2 - ((twinkle_sat/320.0f) * inoise8(x*noiseScale, i*noiseScale, anim_time*2) * overdrive) ) )
+  , 0, 255);
 }
 
 int getLedVal(int x, int i) {
-  return max( 
-    val * (1 - (twinkle_val * inoise8(x * 80, i * 80, anim_time) * 5 / 900.0f))
-  , 0);
+  float overdrive = 3.0f; // Scale noise amplitude, clamping values above max and below min.  Adds more 'ember' contrast.
+  int noiseScale  = 60;   // Scale noise frequency.  Higher value means smaller waves.
+  return constrain(                     // \/ Tweak this value adjust maximum selectable effect, default 255.
+    val * ( ( overdrive/2 - ((twinkle_val/300.0f) * inoise8(x*noiseScale, i*noiseScale, anim_time) * overdrive) ) )
+  , 0, 255);
 }
 
 void readPots() {  
