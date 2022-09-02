@@ -1,9 +1,16 @@
 #include <FastLED.h>
 
 #define LOGGING false
-#define NUM_STRIPS 1
-#define NUM_LEDS_PER_STRIP 72
-CRGB leds[NUM_STRIPS][NUM_LEDS_PER_STRIP];
+#define STRIP_0_SIZE 24
+#define STRIP_1_SIZE 72
+#define STRIP_2_SIZE 46
+#define STRIP_3_SIZE 24
+
+CRGB strip_0[STRIP_0_SIZE];
+CRGB strip_1[STRIP_1_SIZE];
+CRGB strip_2[STRIP_2_SIZE];
+CRGB strip_3[STRIP_3_SIZE];
+
 float anim_time = 0.0;
 
 float val = 150;            // 0   - 255    // "volume"
@@ -24,50 +31,57 @@ int shimmerPin = A5;
 int pacePin = A6;
 int vibrancePin = A7;
 
+int interps = 3;
+int phase = 0;
+
 void setup() {
   Serial.begin(9600);
-  FastLED.addLeds<NEOPIXEL, 9>(leds[0], NUM_LEDS_PER_STRIP);
-  FastLED.addLeds<NEOPIXEL, 10>(leds[1], NUM_LEDS_PER_STRIP);
-  FastLED.addLeds<NEOPIXEL, 11>(leds[2], NUM_LEDS_PER_STRIP);
-  FastLED.addLeds<NEOPIXEL, 12>(leds[3], NUM_LEDS_PER_STRIP);
+  FastLED.addLeds<NEOPIXEL, 9>(strip_0, STRIP_0_SIZE);
+  FastLED.addLeds<NEOPIXEL, 10>(strip_1, STRIP_1_SIZE);
+  FastLED.addLeds<NEOPIXEL, 11>(strip_2, STRIP_2_SIZE);
+  FastLED.addLeds<NEOPIXEL, 12>(strip_3, STRIP_3_SIZE);
 }
 
 void loop() {
   int frame_start = millis();
   readPots();
-  // This outer loop will go over each strip, one at a time
-  for(int x = 0; x < NUM_STRIPS; x++) {
-    // This inner loop will go over each led in the current strip, one at a time
-    for(int i = 0; i < NUM_LEDS_PER_STRIP; i++) {
-      // Optimisation: hue and sat only calculated if val != 0, as LED would be off.
-      int ledVal = getLedVal(x, i);
-      int ledHue = ledVal == 0 ? 0 : getLedHue(x, i);
-      int ledSat = ledVal == 0 ? 0 : getLedSat(x, i);
-        
-      leds[x][i] = CHSV(
-        ledHue,
-        ledSat,
-        ledVal
-      );
-
-    }
-  }
+  loopStrip(strip_0, STRIP_0_SIZE, 0);
+  loopStrip(strip_1, STRIP_1_SIZE, 1);
+  loopStrip(strip_2, STRIP_2_SIZE, 2);
+  loopStrip(strip_3, STRIP_3_SIZE, 3);
 
   FastLED.show();
 
   anim_time += speed * 10;
+  phase = (phase + 1) % interps;
+  
 //  delay(1000);
   int frame_end = millis();
   if (LOGGING) {
     Serial.print("frame time: ");
     Serial.println(frame_end - frame_start);
   }
-  
+}
+
+void loopStrip(CRGB strip[], int size, int strip_number) {
+  // This inner loop will go over each led in the current strip, one at a time
+  for(int i = phase; i < size; i += interps) {
+    // Optimisation: hue and sat only calculated if val != 0, as LED would be off.
+    int ledVal = getLedVal(strip_number, i);
+    int ledHue = ledVal == 0 ? 0 : getLedHue(strip_number, i);
+    int ledSat = ledVal == 0 ? 0 : getLedSat(strip_number, i);
+      
+    strip[i] = CHSV(
+      ledHue,
+      ledSat,
+      ledVal
+    );
+  }
 }
 
 int getLedHue(int x, int i) {
   // First noise function varies the whole strip over time, second adds a colour wave throughout each strip
-  return hue + ((inoise8(x * 110, anim_time) - 128) * strip_spread) + (twinkle_hue * (inoise8(x * 90, i * 30, anim_time) - 128));
+  return hue + ((inoise8(x * 80, anim_time) - 128) * strip_spread) + (twinkle_hue * (inoise8(x, i * 10, anim_time) - 128));
 }
 
 int getLedSat(int x, int i) {
